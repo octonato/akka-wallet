@@ -1,0 +1,19 @@
+
+### create wallet 001
+POST http://localhost:9000/wallet/001/create
+Content-Type: application/json
+
+### get balance
+GET http://localhost:9000/wallet/001
+
+### deposit
+POST http://localhost:9000/wallet/001/deposit/1000
+Content-Type: application/json
+
+### withdraw
+POST http://localhost:9000/wallet/001/withdraw/100
+Content-Type: application/json
+
+
+### get wallets with balance higher than 1000
+GET http://localhost:9000/wallet/balance/higher-than/1000
