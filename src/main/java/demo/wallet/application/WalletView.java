@@ -13,7 +13,7 @@ import demo.wallet.domain.WalletEvent;
 public class WalletView extends View {
 
   @Query("SELECT * as wallets FROM wallet_view WHERE balance > :amount")
-  public View.QueryEffect<WalletsList> getWallets(long amount) {
+  public QueryEffect<WalletsList> getWallets(long amount) {
     return queryResult();
   }
 
@@ -26,11 +26,17 @@ public class WalletView extends View {
       } else {
         var walletId = updateContext().eventSubject().get();
       return switch (event) {
-        case WalletEvent.WalletCreated evt -> effects().updateRow(new WalletBalance(walletId, 0));
+        case WalletEvent.WalletCreated __ -> effects().updateRow(new WalletBalance(walletId, 0));
 
         case WalletEvent.Deposited evt -> effects().updateRow(rowState().increase(evt.amount()));
-
         case WalletEvent.Withdrawn evt -> effects().updateRow(rowState().decrease(evt.amount()));
+
+        // this view is only reflecting the final state of the wallet,
+        // therefore we ignore pending transactions
+        case WalletEvent.DepositInitiated __ -> effects().ignore();
+        case WalletEvent.WithdrawInitiated __ -> effects().ignore();
+        case WalletEvent.TransactionCompleted __ -> effects().ignore();
+        case WalletEvent.TransactionCancelled __ -> effects().ignore();
       };
       }
     }

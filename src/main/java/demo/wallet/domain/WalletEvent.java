@@ -8,11 +8,27 @@ public sealed interface WalletEvent {
   record WalletCreated() implements WalletEvent {
   }
 
-  @TypeName("balance-increased")
-  record Deposited(long amount) implements WalletEvent {
+  @TypeName("deposit-initiated")
+  record DepositInitiated(long amount, String transactionId) implements WalletEvent {
   }
 
-  @TypeName("balance-decreased")
-  record Withdrawn(long amount) implements WalletEvent {
+  @TypeName("withdraw-initiated")
+  record WithdrawInitiated(long amount, String transactionId) implements WalletEvent {
+  }
+
+  @TypeName("deposited")
+  record Deposited(long amount, String transactionId) implements WalletEvent {
+  }
+
+  @TypeName("withdrawn")
+  record Withdrawn(long amount, String transactionId) implements WalletEvent {
+  }
+
+  @TypeName("tx-cancelled")
+  record TransactionCancelled(String transactionId) implements WalletEvent {
+  }
+
+  @TypeName("tx-completed")
+  record TransactionCompleted(String transactionId) implements WalletEvent {
   }
 }
