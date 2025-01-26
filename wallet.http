@@ -1,0 +1,40 @@
+
+### create wallet 001
+POST http://localhost:9000/wallet/001/create
+Content-Type: application/json
+
+### get status wallet 001
+GET http://localhost:9000/wallet/001
+
+
+### create wallet 002
+POST http://localhost:9000/wallet/002/create
+Content-Type: application/json
+
+
+### get status wallet 002
+GET http://localhost:9000/wallet/002
+
+### deposit wallet 001
+POST http://localhost:9000/wallet/001/deposit
+Content-Type: application/json
+
+{
+    "amount": 1000,
+    "transactionId": "{{$random.uuid}}"
+}
+
+### withdraw wallet 001
+POST http://localhost:9000/wallet/001/withdraw
+Content-Type: application/json
+
+{
+  "amount": 100,
+  "transactionId": "{{$random.uuid}}"
+}
+
+
+
+### get wallets with balance higher than 1000
+GET http://localhost:9000/wallet/balance/higher-than/1000
+

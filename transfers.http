@@ -1,0 +1,13 @@
+### transfer money
+POST http://localhost:9000/transfer/{{$random.uuid}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "from": "001",
+  "to": "002"
+}
+
+### transfer status
+GET http://localhost:9000/transfer/b544e427-2cdd-4864-a177-59ada7cd1d0a
+Content-Type: application/json
