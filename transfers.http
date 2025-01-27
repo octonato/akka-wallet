@@ -9,5 +9,5 @@ Content-Type: application/json
 }
 
 ### transfer status
-GET http://localhost:9000/transfer/b544e427-2cdd-4864-a177-59ada7cd1d0a
+GET http://localhost:9000/transfer/7a642a9a-4179-45ed-9cd4-1d6cdf18b523
 Content-Type: application/json

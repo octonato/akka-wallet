@@ -1,0 +1,7 @@
+name: akka-wallet
+service:
+  image: octonato/akka-wallet:1.0.0
+  replication:
+    mode: replicated-read
+    replicatedRead:
+      primarySelectionMode: dynamic

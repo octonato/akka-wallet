@@ -7,6 +7,7 @@ import akka.javasdk.annotations.http.HttpEndpoint;
 import akka.javasdk.annotations.http.Post;
 import akka.javasdk.client.ComponentClient;
 import akka.javasdk.http.HttpResponses;
+import demo.transfer.api.TransferId;
 import demo.transfer.application.TransferMediatorEntity;
 import demo.transfer.domain.Create;
 import demo.wallet.application.WalletEntity;
@@ -67,30 +68,32 @@ public class WalletEndpoint {
   @Post("/{walletId}/deposit")
   public CompletionStage<HttpResponse> deposit(String walletId, DepositRequest request) {
 
+    var prefixedTransferId = TransferId.prefixForMediator(request.transactionId());
     var transactionStatus =
       componentClient
-        .forEventSourcedEntity(request.transactionId())
+        .forEventSourcedEntity(prefixedTransferId)
         .method(TransferMediatorEntity::init)
         .invokeAsync(Create.of(walletId));
 
-    return transactionStatus.thenCompose(txStatus -> {
-        return componentClient
+    return transactionStatus.thenCompose(txStatus ->
+      componentClient
           .forEventSourcedEntity(walletId)
           .method(WalletEntity::deposit)
-          .invokeAsync(new DepositCommand(request.amount(), request.transactionId()))
+        .invokeAsync(new DepositCommand(request.amount(), prefixedTransferId))
           .thenApply(wallet -> {
             var walletStatus = WalletStatus.of(walletId, wallet);
             return HttpResponses.ok(walletStatus);
-          });
-    });
+          })
+    );
   }
 
   @Post("/{walletId}/withdraw")
   public CompletionStage<HttpResponse> withdraw(String walletId, WithdrawRequest request) {
 
+    var prefixedTransferId = TransferId.prefixForMediator(request.transactionId());
     var transactionStatus =
         componentClient
-            .forEventSourcedEntity(request.transactionId())
+          .forEventSourcedEntity(prefixedTransferId)
             .method(TransferMediatorEntity::init)
           .invokeAsync(Create.of(walletId));
 
@@ -98,7 +101,7 @@ public class WalletEndpoint {
         return componentClient
           .forEventSourcedEntity(walletId)
           .method(WalletEntity::withdraw)
-          .invokeAsync(new WithdrawCommand(request.amount(), request.transactionId()))
+          .invokeAsync(new WithdrawCommand(request.amount(), prefixedTransferId))
           .thenApply(wallet -> {
             var walletStatus = WalletStatus.of(walletId, wallet);
             return HttpResponses.ok(walletStatus);

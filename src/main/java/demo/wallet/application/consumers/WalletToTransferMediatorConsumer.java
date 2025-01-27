@@ -4,6 +4,7 @@ import akka.javasdk.annotations.ComponentId;
 import akka.javasdk.annotations.Consume;
 import akka.javasdk.client.ComponentClient;
 import akka.javasdk.consumer.Consumer;
+import demo.transfer.api.TransferId;
 import demo.transfer.application.TransferMediatorEntity;
 import demo.wallet.application.WalletEntity;
 import demo.wallet.domain.WalletEvent;
@@ -25,8 +26,8 @@ public class WalletToTransferMediatorConsumer extends Consumer {
   public Effect onEvent(WalletEvent event) {
 
     if (messageContext().eventSubject().isEmpty()) {
-      //
       return effects().done();
+
     } else {
       var walletId = messageContext().eventSubject().get();
       logger.info("Received event [{}] from wallet [{}]", event, walletId);
@@ -41,22 +42,31 @@ public class WalletToTransferMediatorConsumer extends Consumer {
   }
 
   private Effect join(String transactionId, String walletId) {
+    if (TransferId.isMediatorId(transactionId)) {
     var done =
       componentClient
         .forEventSourcedEntity(transactionId)
         .method(TransferMediatorEntity::participantJoined)
         .invokeAsync(walletId);
-
-    return effects().asyncDone(done);
+      return effects().asyncDone(done);
+    }
+    // a wallet can participate in transfers that are not managed by the TransferMediatorEntity
+    // in such case we just ignore the event
+    return effects().ignore();
   }
 
   private Effect execute(String transactionId, String walletId) {
-    var done =
-      componentClient
-        .forEventSourcedEntity(transactionId)
-        .method(TransferMediatorEntity::confirmExecution)
-        .invokeAsync(walletId);
+    if (TransferId.isMediatorId(transactionId)) {
+      var done =
+        componentClient
+          .forEventSourcedEntity(transactionId)
+          .method(TransferMediatorEntity::confirmExecution)
+          .invokeAsync(walletId);
 
-    return effects().asyncDone(done);
+      return effects().asyncDone(done);
+    }
+    // a wallet can participate in transfers that are not managed by the TransferMediatorEntity
+    // in such case we just ignore the event
+    return effects().ignore();
   }
 }

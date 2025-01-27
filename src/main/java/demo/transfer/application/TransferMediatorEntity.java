@@ -4,6 +4,7 @@ import akka.Done;
 import akka.javasdk.annotations.ComponentId;
 import akka.javasdk.eventsourcedentity.EventSourcedEntity;
 import akka.javasdk.eventsourcedentity.EventSourcedEntityContext;
+import demo.transfer.api.TransferId;
 import demo.transfer.domain.Create;
 import demo.transfer.domain.TransferEvent;
 import demo.transfer.domain.TransferState;
@@ -31,6 +32,11 @@ public class TransferMediatorEntity extends EventSourcedEntity<TransferState, Tr
   }
 
   public Effect<TransferStatus> init(Create cmd) {
+
+    if (!TransferId.isMediatorId(transferId)) {
+      return effects().error("Transfer [" + transferId + "] is not a valid mediator id");
+    }
+
     if (currentState() == null) {
       logger.info("Creating transfer: [{}] for [{}]", transferId, cmd);
 
