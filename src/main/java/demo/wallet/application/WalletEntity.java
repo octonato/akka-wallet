@@ -19,17 +19,16 @@ public class WalletEntity extends EventSourcedEntity<Wallet, WalletEvent> {
 
   final private Effect<Done> doneEffect = effects().reply(Done.getInstance());
 
-
-
   public Effect<Wallet> create() {
-    if (currentState() == null)
-    return effects()
-      .persist(new WalletEvent.WalletCreated())
-      .thenReply(identity());
-    else
+    if (currentState() == null) {
+      logger.info("Wallet [{}]: creating", commandContext().entityId());
+      return effects()
+        .persist(new WalletEvent.WalletCreated())
+        .thenReply(identity());
+    } else {
       return effects().reply(currentState());
+    }
   }
-
 
   private <T> ReadOnlyEffect<T> walletDoesNotExist() {
     return effects().error("Wallet [" + commandContext().entityId() + "] does not exist");

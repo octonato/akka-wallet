@@ -1,0 +1,40 @@
+### transfer money (workflow)
+POST http://localhost:9000/transfer/001/workflow
+Content-Type: application/json
+
+{
+  "amount": 250,
+  "from": "100",
+  "to": "200"
+}
+
+### get transfer state (workflow)
+GET http://localhost:9000/transfer/001/workflow
+
+### resume transfer
+POST http://localhost:9000/transfer/001/workflow/resume
+Content-Type: application/json
+
+
+### create wallet 100
+POST http://localhost:9000/wallet/100/create
+Content-Type: application/json
+
+### deposit wallet 100
+POST http://localhost:9000/wallet/100/deposit
+Content-Type: application/json
+
+{
+    "amount": 1000,
+    "transactionId": "{{$random.uuid}}"
+}
+
+### get status wallet 100
+GET http://localhost:9000/wallet/100
+
+### create wallet 200
+POST http://localhost:9000/wallet/200/create
+Content-Type: application/json
+
+### get status wallet 200
+GET http://localhost:9000/wallet/200
