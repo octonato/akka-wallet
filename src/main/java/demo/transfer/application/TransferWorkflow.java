@@ -69,6 +69,12 @@ public class TransferWorkflow extends Workflow<TransferWorkflowState> {
     }
   }
 
+  public Effect<Done> resume() {
+    if (currentState().isPaused())
+      return effects().transitionTo(EXECUTE).thenReply(Done.getInstance());
+    else return effects().reply(Done.getInstance());
+  }
+
   @Override
   public WorkflowDef<TransferWorkflowState> definition() {
 
@@ -99,8 +105,8 @@ public class TransferWorkflow extends Workflow<TransferWorkflowState> {
         })
         .andThen(Done.class, done ->
           effects()
-            .updateState(currentState().initiated())
-            .transitionTo(EXECUTE)
+            .updateState(currentState().paused())
+            .pause()
         );
 
     var execute =

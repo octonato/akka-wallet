@@ -92,5 +92,14 @@ public class TransferEndpoint {
         .method(TransferWorkflow::getState)
         .invokeAsync();
   }
+  @Post("/{transferId}/workflow/resume")
+  public CompletionStage<Done> resume(String transferId) {
 
+    var prefixedTransferId = TransferId.prefixForWorkflow(transferId);
+    return
+      componentClient
+        .forWorkflow(prefixedTransferId)
+        .method(TransferWorkflow::resume)
+        .invokeAsync();
+  }
 }
