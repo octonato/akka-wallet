@@ -1,6 +1,6 @@
 name: akka-wallet
 service:
-  image: octonato/akka-wallet:1.0.0
+  image: kcr.eu-central-1.kalix.io/lightbend-eng/wallet-multi-region/akka-wallet:1.0.0
   replication:
     mode: replicated-read
     replicatedRead:
