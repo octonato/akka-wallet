@@ -15,9 +15,9 @@ import org.slf4j.LoggerFactory;
 @Consume.FromEventSourcedEntity(WalletEntity.class)
 public class WalletToTransferMediatorConsumer extends Consumer {
 
-  final private Logger logger = LoggerFactory.getLogger(getClass());
+  private final Logger logger = LoggerFactory.getLogger(getClass());
 
-  final private ComponentClient componentClient;
+  private final ComponentClient componentClient;
 
   public WalletToTransferMediatorConsumer(ComponentClient componentClient) {
     this.componentClient = componentClient;
@@ -43,11 +43,11 @@ public class WalletToTransferMediatorConsumer extends Consumer {
 
   private Effect join(String transactionId, String walletId) {
     if (TransferId.isMediatorId(transactionId)) {
-    var done =
-      componentClient
-        .forEventSourcedEntity(transactionId)
-        .method(TransferMediatorEntity::participantJoined)
-        .invokeAsync(walletId);
+      var done =
+          componentClient
+              .forEventSourcedEntity(transactionId)
+              .method(TransferMediatorEntity::participantJoined)
+              .invokeAsync(walletId);
       return effects().asyncDone(done);
     }
     // a wallet can participate in transfers that are not managed by the TransferMediatorEntity
@@ -58,10 +58,10 @@ public class WalletToTransferMediatorConsumer extends Consumer {
   private Effect execute(String transactionId, String walletId) {
     if (TransferId.isMediatorId(transactionId)) {
       var done =
-        componentClient
-          .forEventSourcedEntity(transactionId)
-          .method(TransferMediatorEntity::confirmExecution)
-          .invokeAsync(walletId);
+          componentClient
+              .forEventSourcedEntity(transactionId)
+              .method(TransferMediatorEntity::confirmExecution)
+              .invokeAsync(walletId);
 
       return effects().asyncDone(done);
     }

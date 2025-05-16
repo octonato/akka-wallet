@@ -1,5 +1,7 @@
 package demo.wallet.application;
 
+import static java.util.function.Function.identity;
+
 import akka.Done;
 import akka.javasdk.annotations.ComponentId;
 import akka.javasdk.eventsourcedentity.EventSourcedEntity;
@@ -10,21 +12,17 @@ import demo.wallet.domain.WithdrawCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static java.util.function.Function.identity;
-
 @ComponentId("wallet")
 public class WalletEntity extends EventSourcedEntity<Wallet, WalletEvent> {
 
-  final private Logger logger = LoggerFactory.getLogger(getClass());
+  private final Logger logger = LoggerFactory.getLogger(getClass());
 
-  final private Effect<Done> doneEffect = effects().reply(Done.getInstance());
+  private final Effect<Done> doneEffect = effects().reply(Done.getInstance());
 
   public Effect<Wallet> create() {
     if (currentState() == null) {
       logger.info("Wallet [{}]: creating", commandContext().entityId());
-      return effects()
-        .persist(new WalletEvent.WalletCreated())
-        .thenReply(identity());
+      return effects().persist(new WalletEvent.WalletCreated()).thenReply(identity());
     } else {
       return effects().reply(currentState());
     }
@@ -39,15 +37,16 @@ public class WalletEntity extends EventSourcedEntity<Wallet, WalletEvent> {
     if (currentState() == null) {
       return walletDoesNotExist();
     } else if (currentState().alreadySeen(cmd.transactionId())) {
-      logger.info("Wallet [{}]: received deposit request, but transaction [{}] is already in progress",
-        commandContext().entityId(),
-        cmd.transactionId());
+      logger.info(
+          "Wallet [{}]: received deposit request, but transaction [{}] is already in progress",
+          commandContext().entityId(),
+          cmd.transactionId());
       return effects().reply(currentState());
     } else {
       logger.info("Wallet [{}]: received deposit request: {}", commandContext().entityId(), cmd);
       return effects()
-        .persist(new WalletEvent.DepositInitiated(cmd.amount(), cmd.transactionId()))
-        .thenReply(identity());
+          .persist(new WalletEvent.DepositInitiated(cmd.amount(), cmd.transactionId()))
+          .thenReply(identity());
     }
   }
 
@@ -55,17 +54,18 @@ public class WalletEntity extends EventSourcedEntity<Wallet, WalletEvent> {
     if (currentState() == null) {
       return walletDoesNotExist();
     } else if (currentState().alreadySeen(cmd.transactionId())) {
-      logger.info("Wallet [{}]: received withdraw request, but transaction [{}] is already in progress",
-        commandContext().entityId(),
-        cmd.transactionId());
+      logger.info(
+          "Wallet [{}]: received withdraw request, but transaction [{}] is already in progress",
+          commandContext().entityId(),
+          cmd.transactionId());
       return effects().reply(currentState());
     } else if (currentState().balance() < cmd.amount()) {
       return effects().error("Insufficient balance");
     } else {
       logger.info("Wallet [{}]: received withdraw request: {}", commandContext().entityId(), cmd);
       return effects()
-        .persist(new WalletEvent.WithdrawInitiated(cmd.amount(), cmd.transactionId()))
-        .thenReply(identity());
+          .persist(new WalletEvent.WithdrawInitiated(cmd.amount(), cmd.transactionId()))
+          .thenReply(identity());
     }
   }
 
@@ -88,12 +88,12 @@ public class WalletEntity extends EventSourcedEntity<Wallet, WalletEvent> {
 
       if (transaction.isDeposit()) {
         return effects()
-          .persist(new WalletEvent.Deposited(transaction.amount(), transaction.transactionId()))
-          .thenReply(__ -> Done.getInstance());
+            .persist(new WalletEvent.Deposited(transaction.amount(), transaction.transactionId()))
+            .thenReply(__ -> Done.getInstance());
       } else {
         return effects()
-          .persist(new WalletEvent.Withdrawn(transaction.amount(), transaction.transactionId()))
-          .thenReply(__ -> Done.getInstance());
+            .persist(new WalletEvent.Withdrawn(transaction.amount(), transaction.transactionId()))
+            .thenReply(__ -> Done.getInstance());
       }
     }
 
@@ -106,8 +106,8 @@ public class WalletEntity extends EventSourcedEntity<Wallet, WalletEvent> {
     if (currentState().isExecutedTransaction(transactionId)) {
       logger.info("Wallet [{}]: transaction [{}] completed", walletId, transactionId);
       return effects()
-        .persist(new WalletEvent.TransactionCompleted(transactionId))
-        .thenReply(__ -> Done.getInstance());
+          .persist(new WalletEvent.TransactionCompleted(transactionId))
+          .thenReply(__ -> Done.getInstance());
     }
 
     return doneEffect;
@@ -120,27 +120,31 @@ public class WalletEntity extends EventSourcedEntity<Wallet, WalletEvent> {
       var transaction = currentState().getTransaction(transactionId);
       logger.info("Wallet [{}]: transaction [{}] cancelled", walletId, transaction);
       return effects()
-        .persist(new WalletEvent.TransactionCancelled(transactionId))
-        .thenReply(__ -> Done.getInstance());
+          .persist(new WalletEvent.TransactionCancelled(transactionId))
+          .thenReply(__ -> Done.getInstance());
     }
 
     return doneEffect;
   }
-
 
   @Override
   public Wallet applyEvent(WalletEvent event) {
     return switch (event) {
       case WalletEvent.WalletCreated() -> new Wallet(0);
 
-      case WalletEvent.DepositInitiated(long amount, String txId) -> currentState().addPendingDeposit(amount, txId);
-      case WalletEvent.WithdrawInitiated(long amount, String txId) -> currentState().addPendingWithdraw(amount, txId);
+      case WalletEvent.DepositInitiated(long amount, String txId) ->
+          currentState().addPendingDeposit(amount, txId);
+      case WalletEvent.WithdrawInitiated(long amount, String txId) ->
+          currentState().addPendingWithdraw(amount, txId);
 
-      case WalletEvent.Deposited(long amount, String txId) -> currentState().executeDeposit(amount, txId);
-      case WalletEvent.Withdrawn(long amount, String txId) -> currentState().executeWithdraw(amount, txId);
+      case WalletEvent.Deposited(long amount, String txId) ->
+          currentState().executeDeposit(amount, txId);
+      case WalletEvent.Withdrawn(long amount, String txId) ->
+          currentState().executeWithdraw(amount, txId);
 
       case WalletEvent.TransactionCancelled(String txId) -> currentState().cancelTransaction(txId);
-      case WalletEvent.TransactionCompleted(String txId) -> currentState().completeTransaction(txId);
+      case WalletEvent.TransactionCompleted(String txId) ->
+          currentState().completeTransaction(txId);
     };
   }
 }

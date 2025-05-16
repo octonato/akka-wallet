@@ -1,4 +1,3 @@
 package demo.wallet.domain;
 
-public record WithdrawCommand(long amount, String transactionId) {
-}
+public record WithdrawCommand(long amount, String transactionId) {}

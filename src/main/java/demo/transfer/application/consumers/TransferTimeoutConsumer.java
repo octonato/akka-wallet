@@ -7,24 +7,22 @@ import akka.javasdk.consumer.Consumer;
 import akka.javasdk.timer.TimerScheduler;
 import demo.transfer.application.TransferMediatorEntity;
 import demo.transfer.domain.TransferEvent;
+import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.time.Duration;
 
 @ComponentId("transaction-timeout")
 @Consume.FromEventSourcedEntity(TransferMediatorEntity.class)
 public class TransferTimeoutConsumer extends Consumer {
 
-  final private ComponentClient componentClient;
-  final private TimerScheduler timerScheduler;
-  final private Logger logger = LoggerFactory.getLogger(getClass());
+  private final ComponentClient componentClient;
+  private final TimerScheduler timerScheduler;
+  private final Logger logger = LoggerFactory.getLogger(getClass());
 
   public TransferTimeoutConsumer(ComponentClient componentClient, TimerScheduler timerScheduler) {
     this.componentClient = componentClient;
     this.timerScheduler = timerScheduler;
   }
-
 
   private String genTimerId(String transferId) {
     return "timeout-transfer-timer:" + transferId;
@@ -32,19 +30,18 @@ public class TransferTimeoutConsumer extends Consumer {
 
   public Effect onEvent(TransferEvent event) {
     return switch (event) {
-
       case TransferEvent.Created evt -> {
-
         String timerId = genTimerId(evt.transferId());
-        logger.info("Scheduling cancellation for transfer [{}], timer id [{}]", evt.transferId(), timerId);
+        logger.info(
+            "Scheduling cancellation for transfer [{}], timer id [{}]", evt.transferId(), timerId);
         var cancellationCall =
-          componentClient
-            .forEventSourcedEntity(evt.transferId())
-            .method(TransferMediatorEntity::cancel)
-            .deferred();
+            componentClient
+                .forEventSourcedEntity(evt.transferId())
+                .method(TransferMediatorEntity::cancel)
+                .deferred();
 
         var scheduledCancellation =
-          timerScheduler.startSingleTimer(timerId, Duration.ofSeconds(20), cancellationCall);
+            timerScheduler.startSingleTimer(timerId, Duration.ofSeconds(20), cancellationCall);
 
         yield effects().asyncDone(scheduledCancellation);
       }
@@ -54,7 +51,6 @@ public class TransferTimeoutConsumer extends Consumer {
       case TransferEvent.Cancelled evt -> cancelTimer(evt.transferId());
 
       default -> effects().ignore();
-
     };
   }
 

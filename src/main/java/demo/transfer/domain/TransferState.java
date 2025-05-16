@@ -1,5 +1,7 @@
 package demo.transfer.domain;
 
+import static demo.transfer.domain.TransferState.Status.PENDING;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -7,19 +9,16 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static demo.transfer.domain.TransferState.Status.PENDING;
-
-public record TransferState(String transferId, Map<String, Participant> participants, Status status) {
+public record TransferState(
+    String transferId, Map<String, Participant> participants, Status status) {
 
   // constructor accepting list of participants
-    public TransferState(String transferId, List<Participant> participants) {
-        this(
-          transferId,
-          participants.stream().collect(Collectors.toMap(Participant::id, Function.identity())),
-          PENDING);
-    }
-
-
+  public TransferState(String transferId, List<Participant> participants) {
+    this(
+        transferId,
+        participants.stream().collect(Collectors.toMap(Participant::id, Function.identity())),
+        PENDING);
+  }
 
   public enum Status {
     PENDING,
@@ -31,7 +30,6 @@ public record TransferState(String transferId, Map<String, Participant> particip
       return this == CANCELLED || this == COMPLETED;
     }
   }
-
 
   public Set<String> allParticipantsIds() {
     return participants.keySet();
@@ -65,7 +63,6 @@ public record TransferState(String transferId, Map<String, Participant> particip
     return status == Status.CANCELLED;
   }
 
-
   public TransferState participantJoined(String participantId) {
     var participant = participants.get(participantId);
     if (participant != null) {
@@ -75,7 +72,6 @@ public record TransferState(String transferId, Map<String, Participant> particip
     return this;
   }
 
-
   public boolean allJoined() {
     return allJoined(participants.values());
   }
@@ -83,13 +79,16 @@ public record TransferState(String transferId, Map<String, Participant> particip
   private boolean allJoined(Collection<Participant> participants) {
     return participants.stream().allMatch(Participant::joined);
   }
+
   public boolean isLastToJoin(String participantId) {
-    var allOtherParticipants =  participants.values().stream().filter(p -> !p.id().equals(participantId));
+    var allOtherParticipants =
+        participants.values().stream().filter(p -> !p.id().equals(participantId));
     return allJoined(allOtherParticipants.toList());
   }
 
   public boolean isLastToExecute(String participantId) {
-    var allOtherParticipants =  participants.values().stream().filter(p -> !p.id().equals(participantId));
+    var allOtherParticipants =
+        participants.values().stream().filter(p -> !p.id().equals(participantId));
     return allOtherParticipants.allMatch(Participant::executed);
   }
 

@@ -24,7 +24,6 @@ public record TransferWorkflowState(Transfer transfer, Status status) {
     return new TransferWorkflowState(transfer, Status.COMPLETED);
   }
 
-
   public TransferWorkflowState cancelled() {
     return new TransferWorkflowState(transfer, Status.CANCELLED);
   }
