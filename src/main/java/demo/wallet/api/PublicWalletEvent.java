@@ -4,15 +4,11 @@ import akka.javasdk.annotations.TypeName;
 
 public sealed interface PublicWalletEvent {
   @TypeName("wallet-created")
-  record WalletCreated(String walletId) implements PublicWalletEvent {
-  }
+  record WalletCreated(String walletId) implements PublicWalletEvent {}
 
   @TypeName("balance-increased")
-  record Deposited(String walletId, long amount) implements PublicWalletEvent {
-  }
+  record Deposited(String walletId, long amount) implements PublicWalletEvent {}
 
   @TypeName("balance-decreased")
-  record Withdrawn(String walletId, long amount) implements PublicWalletEvent {
-  }
-
+  record Withdrawn(String walletId, long amount) implements PublicWalletEvent {}
 }

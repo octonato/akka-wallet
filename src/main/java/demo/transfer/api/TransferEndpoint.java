@@ -18,79 +18,73 @@ import demo.wallet.application.WalletEntity;
 import demo.wallet.domain.DepositCommand;
 import demo.wallet.domain.WithdrawCommand;
 
-import java.util.concurrent.CompletionStage;
-
 // Opened up for access from the public internet to make the service easy to try out.
-// For actual services meant for production this must be carefully considered, and often set more limited
+// For actual services meant for production this must be carefully considered and often set more
+// limited
 @Acl(allow = @Acl.Matcher(principal = Acl.Principal.INTERNET))
 @HttpEndpoint("/transfer")
 public class TransferEndpoint {
 
-  final private ComponentClient componentClient;
+  private final ComponentClient componentClient;
 
   public TransferEndpoint(ComponentClient componentClient) {
     this.componentClient = componentClient;
   }
 
   @Get("/{transferId}")
-  public CompletionStage<TransferStatus> transfer(String transferId) {
+  public TransferStatus transfer(String transferId) {
     var prefixedTransferId = TransferId.prefixForMediator(transferId);
     return componentClient
-      .forEventSourcedEntity(prefixedTransferId)
-      .method(TransferMediatorEntity::getState)
-      .invokeAsync();
+        .forEventSourcedEntity(prefixedTransferId)
+        .method(TransferMediatorEntity::getState)
+        .invoke();
   }
 
   @Post("/{transferId}")
-  public CompletionStage<HttpResponse> transfer(String transferId, TransferRequest request) {
+  public HttpResponse transfer(String transferId, TransferRequest request) {
 
     var createTxCmd = Create.of(request.from(), request.to());
     var prefixedTransferId = TransferId.prefixForMediator(transferId);
 
-    return
-      // first create a transfer
-      componentClient
+    // first create a transfer
+    componentClient
         .forEventSourcedEntity(prefixedTransferId)
-        .method(TransferMediatorEntity::init).invokeAsync(createTxCmd)
-        .thenApply(HttpResponses::ok)
+        .method(TransferMediatorEntity::init)
+        .invoke(createTxCmd);
 
-        // then withdraw from the sender
-        .thenCompose(res ->
-          componentClient.forEventSourcedEntity(request.from())
-            .method(WalletEntity::withdraw).invokeAsync(new WithdrawCommand(request.amount(), prefixedTransferId))
-            .thenApply(__ -> res)
-        )
-        // then deposit to the receiver
-        .thenCompose(res ->
-          componentClient
-            .forEventSourcedEntity(request.to())
-            .method(WalletEntity::deposit).invokeAsync(new DepositCommand(request.amount(), prefixedTransferId))
-            .thenApply(__ -> res)
-        );
+    // then withdraw from the sender
+    componentClient
+        .forEventSourcedEntity(request.from())
+        .method(WalletEntity::withdraw)
+        .invoke(new WithdrawCommand(request.amount(), prefixedTransferId));
 
+    // then deposit to the receiver
+    componentClient
+        .forEventSourcedEntity(request.to())
+        .method(WalletEntity::deposit)
+        .invoke(new DepositCommand(request.amount(), prefixedTransferId));
+
+    return HttpResponses.ok(transferId);
   }
 
   @Post("/{transferId}/workflow")
-  public CompletionStage<Done> transferWorkflow(String transferId, TransferRequest request) {
+  public Done transferWorkflow(String transferId, TransferRequest request) {
 
     var prefixedTransferId = TransferId.prefixForWorkflow(transferId);
     var transfer = new Transfer(request.amount(), request.from(), request.to());
-    return
-      componentClient
+    return componentClient
         .forWorkflow(prefixedTransferId)
         .method(TransferWorkflow::startTransfer)
-        .invokeAsync(transfer);
+        .invoke(transfer);
   }
 
   @Get("/{transferId}/workflow")
-  public CompletionStage<TransferWorkflowState> getWorkflowState(String transferId) {
+  public TransferWorkflowState getWorkflowState(String transferId) {
 
     var prefixedTransferId = TransferId.prefixForWorkflow(transferId);
-    return
-      componentClient
+    return componentClient
         .forWorkflow(prefixedTransferId)
         .method(TransferWorkflow::getState)
-        .invokeAsync();
+        .invoke();
   }
-
 }
