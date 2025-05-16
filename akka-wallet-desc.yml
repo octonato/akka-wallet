@@ -4,4 +4,4 @@ service:
   replication:
     mode: replicated-read
     replicatedRead:
-      primarySelectionMode: dynamic
+      primarySelectionMode: request-region
