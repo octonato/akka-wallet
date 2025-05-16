@@ -11,7 +11,6 @@ import demo.transfer.domain.TransferWorkflowState;
 import demo.wallet.application.WalletEntity;
 import demo.wallet.domain.DepositCommand;
 import demo.wallet.domain.WithdrawCommand;
-import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,100 +65,79 @@ public class TransferWorkflow extends Workflow<TransferWorkflowState> {
 
   @Override
   public WorkflowDef<TransferWorkflowState> definition() {
-
-    var initiateTransfer =
-        step(INITIATE_TRANSFER)
-            .asyncCall(
-                () -> {
-                  var amount = currentState().transfer().amount();
-
-                  var fromWallet = currentState().transfer().from();
-                  logger.info(
-                      "Transfer [{}]: withdrawing [{}] to wallet [{}]",
-                      transferId,
-                      amount,
-                      fromWallet);
-                  var withdrawRes =
-                      componentClient
-                          .forEventSourcedEntity(fromWallet)
-                          .method(WalletEntity::withdraw)
-                          .invokeAsync(new WithdrawCommand(amount, transferId));
-
-                  var toWallet = currentState().transfer().to();
-                  logger.info(
-                      "Transfer [{}]: depositing [{}] to wallet [{}]",
-                      transferId,
-                      amount,
-                      toWallet);
-                  var depositRes =
-                      componentClient
-                          .forEventSourcedEntity(toWallet)
-                          .method(WalletEntity::deposit)
-                          .invokeAsync(new DepositCommand(amount, transferId));
-
-                  return CompletableFuture.allOf(
-                          withdrawRes.toCompletableFuture(), depositRes.toCompletableFuture())
-                      .thenApply(__ -> Done.getInstance());
-                })
-            .andThen(
-                Done.class,
-                done -> effects().updateState(currentState().initiated()).transitionTo(EXECUTE));
-
-    var execute =
-        step(EXECUTE)
-            .asyncCall(
-                () -> {
-                  var fromWallet = currentState().transfer().from();
-                  var executeFromWallet = executeTransfer(fromWallet);
-
-                  var toWallet = currentState().transfer().to();
-                  var executeToWallet = executeTransfer(toWallet);
-
-                  return CompletableFuture.allOf(
-                          executeFromWallet.toCompletableFuture(),
-                          executeToWallet.toCompletableFuture())
-                      .thenApply(__ -> Done.getInstance());
-                })
-            .andThen(Done.class, done -> effects().updateState(currentState().completed()).end());
-
-    var cancel =
-        step(CANCEL)
-            .asyncCall(
-                () -> {
-                  logger.info("Cancelling transfer workflow [{}]", transferId);
-
-                  var fromWallet = currentState().transfer().from();
-                  var cancelFromWallet = cancelTransfer(fromWallet);
-
-                  var toWallet = currentState().transfer().to();
-                  var cancelToWallet = cancelTransfer(toWallet);
-
-                  return CompletableFuture.allOf(cancelFromWallet, cancelToWallet)
-                      .thenApply(__ -> Done.getInstance());
-                })
-            .andThen(Done.class, done -> effects().updateState(currentState().cancelled()).end());
-
     return workflow()
-        .addStep(initiateTransfer, maxRetries(3).failoverTo(CANCEL))
-        .addStep(execute)
-        .addStep(cancel);
+        .addStep(initiateTransfer(), maxRetries(3).failoverTo(CANCEL))
+        .addStep(executeStep())
+        .addStep(cancelStep());
   }
 
-  private CompletableFuture<Done> cancelTransfer(String walletId) {
+  private Step initiateTransfer() {
+    return step(INITIATE_TRANSFER)
+        .call(
+            () -> {
+              var amount = currentState().transfer().amount();
+
+              var fromWallet = currentState().transfer().from();
+              logger.info(
+                  "Transfer [{}]: withdrawing [{}] to wallet [{}]", transferId, amount, fromWallet);
+              componentClient
+                  .forEventSourcedEntity(fromWallet)
+                  .method(WalletEntity::withdraw)
+                  .invoke(new WithdrawCommand(amount, transferId));
+
+              var toWallet = currentState().transfer().to();
+              logger.info(
+                  "Transfer [{}]: depositing [{}] to wallet [{}]", transferId, amount, toWallet);
+
+              componentClient
+                  .forEventSourcedEntity(toWallet)
+                  .method(WalletEntity::deposit)
+                  .invoke(new DepositCommand(amount, transferId));
+            })
+        .andThen(() -> effects().updateState(currentState().initiated()).transitionTo(EXECUTE));
+  }
+
+  private Step executeStep() {
+    return step(EXECUTE)
+        .call(
+            () -> {
+              var fromWallet = currentState().transfer().from();
+              executeTransfer(fromWallet);
+
+              var toWallet = currentState().transfer().to();
+              executeTransfer(toWallet);
+            })
+        .andThen(() -> effects().updateState(currentState().completed()).end());
+  }
+
+  private Step cancelStep() {
+    return step(CANCEL)
+        .call(
+            () -> {
+              logger.info("Cancelling transfer workflow [{}]", transferId);
+
+              var fromWallet = currentState().transfer().from();
+              cancelTransfer(fromWallet);
+
+              var toWallet = currentState().transfer().to();
+              cancelTransfer(toWallet);
+            })
+        .andThen(() -> effects().updateState(currentState().cancelled()).end());
+  }
+
+  private Done cancelTransfer(String walletId) {
     logger.info("Transfer [{}]: cancelling transaction on wallet [{}]", transferId, walletId);
     return componentClient
         .forEventSourcedEntity(walletId)
         .method(WalletEntity::cancelTransaction)
-        .invokeAsync(transferId)
-        .toCompletableFuture();
+        .invoke(transferId);
   }
 
-  private CompletableFuture<Done> executeTransfer(String walletId) {
+  private Done executeTransfer(String walletId) {
     logger.info("Transfer [{}]: executing transaction on wallet [{}]", transferId, walletId);
     return componentClient
         .forEventSourcedEntity(walletId)
         .method(WalletEntity::executeTransaction)
-        .invokeAsync(transferId)
-        .toCompletableFuture();
+        .invoke(transferId);
   }
 }

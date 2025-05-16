@@ -31,8 +31,8 @@ public class WalletView extends View {
           case WalletEvent.Deposited evt -> effects().updateRow(rowState().increase(evt.amount()));
           case WalletEvent.Withdrawn evt -> effects().updateRow(rowState().decrease(evt.amount()));
 
-            // this view is only reflecting the final state of the wallet,
-            // therefore we ignore pending transactions
+            // This view is only reflecting the final state of the wallet.
+            // Therefore, we ignore pending transactions
           case WalletEvent.DepositInitiated __ -> effects().ignore();
           case WalletEvent.WithdrawInitiated __ -> effects().ignore();
           case WalletEvent.TransactionCompleted __ -> effects().ignore();
