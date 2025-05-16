@@ -5,9 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public record Wallet(long balance,
-                     List<String> executedTransactions,
-                     Map<String, Transaction> pendingTransactions) {
+public record Wallet(
+    long balance, List<String> executedTransactions, Map<String, Transaction> pendingTransactions) {
 
   public Wallet(long balance) {
     this(balance, List.of(), Map.of());
@@ -44,20 +43,18 @@ public record Wallet(long balance,
   }
 
   private Wallet removeExecutedTransaction(String transactionId) {
-    var otherTx =
-      executedTransactions.stream()
-        .filter(t -> !t.equals(transactionId))
-        .toList();
+    var otherTx = executedTransactions.stream().filter(t -> !t.equals(transactionId)).toList();
     return new Wallet(balance, otherTx, pendingTransactions);
   }
 
   public Wallet addPendingDeposit(long amount, String txId) {
-    return addPendingTransaction(new Transaction(amount, txId, Transaction.TransactionType.DEPOSIT));
+    return addPendingTransaction(
+        new Transaction(amount, txId, Transaction.TransactionType.DEPOSIT));
   }
 
   public Wallet addPendingWithdraw(long amount, String txId) {
-    return decreaseBalance(amount).
-      addPendingTransaction(new Transaction(amount, txId, Transaction.TransactionType.WITHDRAW));
+    return decreaseBalance(amount)
+        .addPendingTransaction(new Transaction(amount, txId, Transaction.TransactionType.WITHDRAW));
   }
 
   public Wallet cancelTransaction(String txId) {
@@ -84,9 +81,9 @@ public record Wallet(long balance,
 
   public long reservedFunds() {
     return pendingTransactions.values().stream()
-      .filter(Transaction::isWithdraw)
-      .mapToLong(Transaction::amount)
-      .sum();
+        .filter(Transaction::isWithdraw)
+        .mapToLong(Transaction::amount)
+        .sum();
   }
 
   public boolean isExecutedTransaction(String transactionId) {
@@ -103,13 +100,13 @@ public record Wallet(long balance,
 
   public Wallet executeWithdraw(long amount, String txId) {
     if (isPendingTransaction(txId)) {
-      // note: we don't need to decrease balance as it was already done when the transaction was created
+      // note: we don't need to decrease balance as it was already done when the transaction was
+      // created
       return removePendingTransaction(txId).addExecutedTransaction(txId);
     } else {
       return this;
     }
   }
-
 
   public record Transaction(long amount, String transactionId, TransactionType type) {
     public enum TransactionType {

@@ -1,4 +1,3 @@
 package demo.wallet.api;
 
-public record DepositRequest(long amount, String transactionId) {
-}
+public record DepositRequest(long amount, String transactionId) {}

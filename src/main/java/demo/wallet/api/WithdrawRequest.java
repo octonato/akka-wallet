@@ -1,4 +1,3 @@
 package demo.wallet.api;
 
-public record WithdrawRequest(long amount, String transactionId) {
-}
+public record WithdrawRequest(long amount, String transactionId) {}

@@ -19,9 +19,12 @@ public class WalletEventStream extends Consumer {
     } else {
       var walletId = messageContext().eventSubject().get();
       return switch (event) {
-        case WalletEvent.WalletCreated __ -> effects().produce(new PublicWalletEvent.WalletCreated(walletId));
-        case WalletEvent.Deposited evt -> effects().produce(new PublicWalletEvent.Deposited(walletId, evt.amount()));
-        case WalletEvent.Withdrawn evt -> effects().produce(new PublicWalletEvent.Withdrawn(walletId, evt.amount()));
+        case WalletEvent.WalletCreated __ ->
+            effects().produce(new PublicWalletEvent.WalletCreated(walletId));
+        case WalletEvent.Deposited evt ->
+            effects().produce(new PublicWalletEvent.Deposited(walletId, evt.amount()));
+        case WalletEvent.Withdrawn evt ->
+            effects().produce(new PublicWalletEvent.Withdrawn(walletId, evt.amount()));
         default -> effects().ignore();
       };
     }
